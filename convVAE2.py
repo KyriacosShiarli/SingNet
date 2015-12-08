@@ -20,9 +20,9 @@ class convVAE(object):
 	def __init__(self,dim_z,x_train,x_test):
 		####################################### SETTINGS ###################################
 		self.x_train = x_train;self.x_test = x_test;
-		self.batch_proportion = 0.5
-		self.learning_rate = theano.shared(0.00005)
-		self.momentum = 0.9
+		self.batch_proportion = 0.1
+		self.learning_rate = theano.shared(0.00002)
+		self.momentum = 0.6
 		self.performance = {"train":[],"test":[]}
 		self.inpt = T.tensor4(name='input')
 		self.dim_z = dim_z
@@ -33,42 +33,49 @@ class convVAE(object):
 		self.in_filters = [32,32,32]
 		self.filter_lengths = [40.,40.,40]
 		self.params = []
+		magic = 1057792.
 
 		####################################### LAYERS ######################################
-		self.layer1 = one_d_conv_layer(self.inpt,self.in_filters[0],1,self.filter_lengths[0],param_names = ["W1",'b1'],pool=2)
+		self.layer1 = one_d_conv_layer(self.inpt,self.in_filters[0],1,self.filter_lengths[0],activation = T.nnet.softplus,param_names = ["W1",'b1'],pool=2.)
 		self.params+=self.layer1.params
 		self.test = T.flatten(self.layer1.output,outdim = 2)
-		self.latent_layer = variational_gauss_layer(T.flatten(self.layer1.output,outdim = 2),63392.,dim_z)
+		self.latent_layer = variational_gauss_layer(T.flatten(self.layer1.output,outdim = 2),magic,dim_z)
 		self.params+=self.latent_layer.params
 		self.latent_out = self.latent_layer.output
-		self.hidden_layer = hidden_layer(self.latent_layer.output,dim_z,63392.)
+		self.hidden_layer = hidden_layer(self.latent_layer.output,dim_z,magic)
 		self.params+=self.hidden_layer.params
-		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],1,int(63392./self.in_filters[-1])))
-		self.deconv1 = one_d_deconv_layer(self.hid_out,1,self.in_filters[2],self.filter_lengths[2],pool=2,param_names = ["W4",'b4'],activation=None,distribution=True)
+		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],1,int(magic/self.in_filters[-1])))
+		self.deconv1 = one_d_deconv_layer(self.hid_out,1,self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W4",'b4'],activation=None,distribution=True)
 		self.params+=self.deconv1.params
 		self.last_layer = self.deconv1
 		self.trunc_output = self.last_layer.output[:,:,:,:self.inpt.shape[3]]
 		self.trunk_sigma =  self.last_layer.log_sigma[:,:,:,:self.inpt.shape[3]]
 		################################### FUNCTIONS ######################################################
 		self.get_latent_states = theano.function([self.inpt],self.latent_out)
+		self.get_prior = theano.function([self.inpt],self.latent_layer.prior)
 		self.convolve1 = theano.function([self.layer1.inpt],self.layer1.output)
 		self.convolve3 = theano.function([self.layer1.inpt],self.test)
 		self.deconvolve3 = theano.function([self.layer1.inpt],self.latent_layer.prior)
+		self.sig_out = theano.function([self.layer1.inpt],T.flatten(self.trunk_sigma,outdim=2))
 		self.output = theano.function([self.layer1.inpt],self.last_layer.output)
 		self.generate_from_z = theano.function([self.inpt],self.trunc_output,givens = [[self.latent_out,self.generative_z]])
 		self.cost = self.lower_bound()
 		self.mse = self.MSE()
+		self.likelihood = self.log_px_z()
 		print "gothere"
 		self.get_cost = theano.function([self.layer1.inpt],[self.cost,self.mse])
+		self.get_likelihood = theano.function([self.layer1.inpt],[self.likelihood])
 		self.derivatives = T.grad(self.cost,self.params)
 		self.get_gradients = theano.function([self.layer1.inpt],self.derivatives)
 		self.updates = adam(self.params,self.derivatives,self.learning_rate)
 		self.train_model = theano.function(inputs = [self.inpt],outputs = self.cost,updates = self.updates)
 
 	def lower_bound(self):
-		log_gauss =  0.5*np.log(2 * np.pi) + 0.5*self.trunk_sigma + 0.5 * ((self.inpt - self.trunc_output) / T.exp(self.trunk_sigma))**2
-		test = T.flatten(log_gauss,outdim=2)
-		test2 = T.sum(test,axis=1)
+		sigma = T.flatten(self.trunk_sigma,outdim=2)
+		mu = T.flatten(self.trunc_output,outdim=2)
+		inp = T.flatten(self.inpt,outdim=2)
+		log_gauss =  0.5*np.log(2 * np.pi) + 0.5*sigma + 0.5 * ((inp - mu) / T.exp(sigma))**2
+		test2 = T.sum(log_gauss,axis=1)
 		return T.mean(test2- self.latent_layer.prior)
 	def log_px_z(self):
 		log_gauss = 0.5*np.log(2 * np.pi) + 0.5*self.trunk_sigma + 0.5 * ((self.inpt - self.trunc_output) / T.exp(self.trunk_sigma))**2
@@ -108,10 +115,7 @@ class convVAE(object):
 
 
 if __name__ == "__main__":
-	data_dictionary = pickle_loader("sound/sine_mixture.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
-	data = data_dictionary["data"]
-	sample_rate = data_dictionary["sample rate"]
-	print "SAMLE",sample_rate
+	data= pickle_loader("sound/instruments.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
 	# map inputs from 0 to 1
 	# patch and shape for the CNN
 	mean = np.mean(data)
@@ -119,19 +123,18 @@ if __name__ == "__main__":
 	#data = (data -mean)/std
 	data = data.reshape(data.shape[0],1,1,data.shape[1])
 	dim_z = 10
+	data=data/0.5
 	# train and test
 	idx = np.random.permutation(data.shape[0])
-	x_train = data[:20,:];x_test = data
-	x_train = x_train*2.
+	x_train = data[:2,:];x_test = data
 	net = convVAE(dim_z,x_train,x_test)
-	out1 = net.deconvolve3(x_train)
-	pdb.set_trace()
-	out2 = net.generate()
+
+
 
 
 	iterations = 1000
 
-	disc = 1.08
+	disc = 1.001
 	for i in range(iterations):
 		net.iterate()
 		print "ITERATION",i
@@ -141,7 +144,7 @@ if __name__ == "__main__":
 			net.learning_rate.set_value(net.learning_rate.get_value()/disc)
 		print net.performance['train'][-1]
 	pdb.set_trace()
-	device_play(net,sample_rate,duration = 1000)
+	#device_play(net,sample_rate,duration = 1000)
 	#use np.squeeze to remove redundant dimentions.
 	#out = out.reshape(out.shape[0],out.shape[1],out.shape[3])
 	#print out2.shape

@@ -31,8 +31,8 @@ class hidden_layer(object):
 		w_bound = np.sqrt(self.out_dim)
 		W = theano.shared( np.asarray(
         rng.uniform(
-                low=-1. / w_bound,
-                high=1. / w_bound,
+                low=-0.1 / w_bound,
+                high=0.1 / w_bound,
                 size=w_shp),
             dtype=inpt.dtype), name =self.param_names[0])
 
@@ -58,7 +58,7 @@ class variational_gauss_layer(object):
 		w_shp = (self.in_dim,self.out_dim)
 		w_bound = np.sqrt(self.out_dim)
 		W_mu = theano.shared( np.asarray(
-        rng.normal(0.,1.,size=w_shp)/w_bound,
+        rng.normal(0.,0.01,size=w_shp)/w_bound,
             dtype=inpt.dtype), name =self.param_names[0])
 
 		b_shp = (self.out_dim,)
@@ -66,14 +66,14 @@ class variational_gauss_layer(object):
             np.zeros(self.out_dim),
             dtype=inpt.dtype), name =self.param_names[1])
 		W_sigma = theano.shared( np.asarray(
-        rng.normal(0.,0.01,size=w_shp)/w_bound,
+        rng.normal(0.,0.0006,size=w_shp),
             dtype=inpt.dtype), name =self.param_names[0])
 
 		b_sigma = theano.shared(np.asarray(
             np.zeros(self.out_dim),
             dtype=inpt.dtype), name =self.param_names[1])        #Find the hidden variable z
 		self.mu_encoder = T.dot(self.inpt,W_mu) +b_mu
-		self.log_sigma_encoder = T.dot(self.inpt,W_sigma) + b_sigma
+		self.log_sigma_encoder =0.5*(T.dot(self.inpt,W_sigma) + b_sigma)
 		self.output = self.mu_encoder +T.exp(self.log_sigma_encoder)*self.eps
 		self.prior =  0.5* T.sum(1 + 2*self.log_sigma_encoder - self.mu_encoder**2 - T.exp(self.log_sigma_encoder)**2,axis = 1)
 		self.params = [W_mu,b_mu,W_sigma,b_sigma]
@@ -82,7 +82,7 @@ class variational_gauss_layer(object):
 
 
 class one_d_conv_layer(object):
-	def __init__(self,inpt,no_filters,in_channels,filter_length,activation = T.nnet.softplus,param_names = ["W","b"],pool = 1):
+	def __init__(self,inpt,no_filters,in_channels,filter_length,activation = relu,param_names = ["W","b"],pool = 1):
 		self.no_of_filters = no_filters
 		self.in_channels = in_channels
 		self.filter_length = filter_length
@@ -90,6 +90,8 @@ class one_d_conv_layer(object):
 		self.inpt =inpt
 		self.param_names = param_names
 		self.pool = pool
+
+		print "POOL",pool
 		self.initialise()
 	def initialise(self):
 		activation = self.activation
@@ -99,7 +101,7 @@ class one_d_conv_layer(object):
 		w_shp = (self.no_of_filters,self.in_channels, 1., self.filter_length)
 		w_bound = np.sqrt(self.in_channels* self.filter_length)
 		W = theano.shared(value = np.asarray(
-        rng.normal(0.,0.2,size=w_shp)/w_bound,
+        rng.normal(0.,0.001,size=w_shp)/w_bound,
             dtype=inpt.dtype), name =self.param_names[0],borrow = True)
 		b_shp = (self.no_of_filters,)
 		b = theano.shared(value = np.asarray(
@@ -132,20 +134,20 @@ class one_d_deconv_layer(object):
 		w_shp = (self.no_of_filters,self.in_channels, 1., self.filter_length)
 		w_bound = np.sqrt(self.in_channels* self.filter_length)
 		W = theano.shared(value = np.asarray(
-        rng.normal(0.,0.5,size=w_shp)/w_bound,
+        rng.normal(0.,0.1,size=w_shp),
             dtype=inpt.dtype), name =self.param_names[0],borrow = True)
 		b_shp = (self.no_of_filters,)
 		b = theano.shared(value = np.asarray(
             rng.uniform(low=-.0, high=.0, size=b_shp),
             dtype=inpt.dtype), name =self.param_names[1],borrow = True)
 
-		
+
 		upsampled = self.inpt.repeat(int(self.pool),axis = 3)
 		conv_out = conv.conv2d(upsampled, W,subsample=(1,1),border_mode = "full")
 		self.params = [W,b]
 		if self.distribution==True:
 			W_sigma = theano.shared(value = np.asarray(
-	        rng.normal(0.,0.5,size=w_shp)/w_bound,
+	        rng.normal(0.,0.0001,size=w_shp),
 	            dtype=inpt.dtype), name =self.param_names[0],borrow = True)
 			b_sigma = theano.shared(value = np.asarray(
 	            rng.uniform(low=-.0, high=.0, size=b_shp),
