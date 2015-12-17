@@ -1,3 +1,5 @@
+from theano import tensor as T
+
 def relu(x):
     return T.switch(x<0, 0, x)
 def det_x(a_11,a_12,a_21,a_22):
