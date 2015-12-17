@@ -25,7 +25,7 @@ class convVAE(object):
 		####################################### SETTINGS ###################################
 		self.x_train = x_train;self.x_test = x_test;
 		self.batch_proportion = 0.01
-		self.learning_rate = theano.shared(0.00005)
+		self.learning_rate = theano.shared(0.000005)
 		self.momentum = 0.3
 		self.performance = {"train":[],"test":[]}
 		self.inpt = T.tensor4(name='input')
@@ -141,10 +141,8 @@ if __name__ == "__main__":
 	x_train = data[:5,:,:,:];x_test = data
 	net = convVAE(dim_z,x_train,x_test)
 	out = net.convolve3(net.x_train)
-	pdb.set_trace()
 	iterations = 400
 	disc = 1.01
-	plt.ion()
 	f1 = plt.figure(1)
 	print "F1",f1.number
 	print "params",len(net.params)
