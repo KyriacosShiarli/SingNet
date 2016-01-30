@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
-
+import pdb
+import numpy as np
 
 def plot_reconstructed(data,reconstructions,figure_handle,grid_shape = None,interactive = False):
 	#plots reconstructed signals on top of the originals
 	#Input shape: N*D
 	plt.figure(figure_handle.number)
-	print "HANDLE",figure_handle.number
 	if interactive == True:
 		#plt.ion()
 		plt.clf()
@@ -22,7 +22,6 @@ def plot_reconstructed(data,reconstructions,figure_handle,grid_shape = None,inte
 	assert data.shape[1] == reconstructions.shape[1] , "dimentions not right %s,%s" % (data.shape[1], reconstructions.shape[1])
 
 	#new_data = data[:reconstructions.shape[0],:] # Just in case the the input data is not the dame dimention as the reconstructions
-	print plt.gcf
 	for i, (d, mu) in enumerate(zip(data,reconstructions)):
 		figure_handle.add_subplot(subplot_dims[0],subplot_dims[1],i+1)
 		plt.plot(d)
@@ -30,6 +29,30 @@ def plot_reconstructed(data,reconstructions,figure_handle,grid_shape = None,inte
 	if interactive == True:
 		#plt.ioff()
 		plt.draw()
+
+
+def plot_filters(weight_tensor,figure_handle,interactive=False):
+	weight_values = weight_tensor.get_value()[:,0,0,:]
+	no_of_filters = 15
+	plt.figure(figure_handle.number)
+	print "OTHER",figure_handle.number
+	rows = np.floor(np.sqrt(no_of_filters))
+	columns = np.ceil(no_of_filters/float(rows))
+	print "FUNCTION HANDLE",figure_handle
+	if interactive == True:
+		plt.clf()
+	for i in range(no_of_filters):
+		figure_handle.add_subplot(rows,columns,i+1)
+		plt.plot(weight_values[i,:])
+	plt.pause(0.01)
+	if interactive == True:
+		plt.draw()
+	else:
+		plt.show()
+
+
+
+
 
 
 

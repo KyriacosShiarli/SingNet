@@ -1,6 +1,8 @@
 import scipy.io.wavfile
 import numpy as np
 import cPickle as pickle
+import pdb
+import matplotlib.pyplot as plt
 
 def pickle_saver(to_be_saved,full_directory):
 	with open(full_directory,'wb') as output:
@@ -54,4 +56,7 @@ def load_pure_tone_data():
 	pickle_saver(all_data,"sound/puretone_data.pkl")
 
 if __name__ == "__main__":
-	load_and_split("sound/mistakidis",0.5)
+	#load_and_split("sound/mistakidis",0.5)
+	data = np.load("sound/instruments_trx.npy")
+	data = map_to_range(data,[-32767. ,32767. ],[-1,1],from_data=False)
+	pdb.set_trace()
