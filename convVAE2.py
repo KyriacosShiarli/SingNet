@@ -52,21 +52,21 @@ class convVAE(object):
 		self.latent_out = self.latent_layer.output
 		self.hidden_layer = hidden_layer(self.latent_out,dim_z,magic)
 		self.params+=self.hidden_layer.params
-		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],1,int(magic/self.in_filters[-1])))
+		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],int(magic/self.in_filters[-1]),1))
 		self.deconv1 = one_d_deconv_layer(self.hid_out,self.in_filters[2],self.in_filters[2],self.filter_lengths[2],pool=5.,param_names = ["W3",'b3'],activation=T.nnet.softplus,distribution=False)
 		self.params+=self.deconv1.params
 		self.deconv2 = one_d_deconv_layer(self.deconv1.output,1,self.in_filters[2],self.filter_lengths[2],pool=5.,param_names = ["W4",'b4'],activation=None,distribution=True)
 		self.params+=self.deconv2.params
 		self.last_layer = self.deconv2
-		self.trunc_output = self.last_layer.output[:,:,:,:self.inpt.shape[3]]
-		self.trunk_sigma =  self.last_layer.log_sigma[:,:,:,:self.inpt.shape[3]]
+		self.trunc_output = self.last_layer.output[:,:,:self.inpt.shape[2],:]
+		self.trunk_sigma =  self.last_layer.log_sigma[:,:,:self.inpt.shape[2],:]
 		################################### FUNCTIONS ######################################################
 		self.get_latent_states = theano.function([self.inpt],self.latent_out)
 		self.get_prior = theano.function([self.inpt],self.latent_layer.prior)
-		# self.convolve1 = theano.function([self.inpt],self.layer1.output)
-		# self.convolve2 = theano.function([self.inpt],self.layer2.output)
-		# self.convolve3 = theano.function([self.inpt],self.test)
-		# self.deconvolve1 = theano.function([self.inpt],self.deconv1.output)
+		self.convolve1 = theano.function([self.inpt],self.layer1.output)
+		self.convolve2 = theano.function([self.inpt],self.layer2.output)
+		self.convolve3 = theano.function([self.inpt],self.test)
+		self.deconvolve1 = theano.function([self.inpt],self.deconv1.output)
 		self.deconvolve2 = theano.function([self.inpt],self.deconv2.output)
 		#self.sig_out = theano.function([self.inpt],T.flatten(self.trunk_sigma,outdim=2))
 		self.output = theano.function([self.inpt],self.last_layer.output)
@@ -128,7 +128,6 @@ class convVAE(object):
 		return np.squeeze(self.generate_from_z(inp))
 
 
-
 if __name__ == "__main__":
 	data= pickle_loader("sound/instruments.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
 	# map inputs from 0 to 1
@@ -155,7 +154,6 @@ if __name__ == "__main__":
 	no_of_filters = 3
 	for i in range(iterations):
 		net.iterate()
-		print "Prior",net.get_prior(net.x_train)
 		#plot_filters(net.params[12],f1,interactive=True)
 		diff = prev - net.params[6].get_value()
 		#print diff

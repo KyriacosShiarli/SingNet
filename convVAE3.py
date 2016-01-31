@@ -52,21 +52,21 @@ class convVAE(object):
 		self.latent_out = self.latent_layer.output
 		self.hidden_layer = hidden_layer(self.latent_out,dim_z,magic)
 		self.params+=self.hidden_layer.params
-		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],1,int(magic/self.in_filters[-1])))
+		self.hid_out = self.hidden_layer.output.reshape((self.inpt.shape[0],self.in_filters[-1],int(magic/self.in_filters[-1]),1))
 		self.deconv1 = one_d_deconv_layer_fast(self.hid_out,self.in_filters[2],self.in_filters[2],self.filter_lengths[2],pool=5.,param_names = ["W3",'b3'],activation=T.nnet.softplus,distribution=False)
 		self.params+=self.deconv1.params
 		self.deconv2 = one_d_deconv_layer_fast(self.deconv1.output,1,self.in_filters[2],self.filter_lengths[2],pool=5.,param_names = ["W4",'b4'],activation=None,distribution=True)
 		self.params+=self.deconv2.params
 		self.last_layer = self.deconv2
-		self.trunc_output = self.last_layer.output[:,:,:,:self.inpt.shape[3]]
-		self.trunk_sigma =  self.last_layer.log_sigma[:,:,:,:self.inpt.shape[3]]
+		self.trunc_output = self.last_layer.output[:,:,:self.inpt.shape[2],:]
+		self.trunk_sigma =  self.last_layer.log_sigma[:,:,:self.inpt.shape[2],:]
 		################################### FUNCTIONS ######################################################
 		self.get_latent_states = theano.function([self.inpt],self.latent_out)
 		self.get_prior = theano.function([self.inpt],self.latent_layer.prior)
-		# self.convolve1 = theano.function([self.inpt],self.layer1.output)
-		# self.convolve2 = theano.function([self.inpt],self.layer2.output)
-		# self.convolve3 = theano.function([self.inpt],self.test)
-		# self.deconvolve1 = theano.function([self.inpt],self.deconv1.output)
+		self.convolve1 = theano.function([self.inpt],self.layer1.output)
+		self.convolve2 = theano.function([self.inpt],self.layer2.output)
+		self.convolve3 = theano.function([self.inpt],self.test)
+		self.deconvolve1 = theano.function([self.inpt],self.deconv1.output)
 		self.deconvolve2 = theano.function([self.inpt],self.deconv2.output)
 		#self.sig_out = theano.function([self.inpt],T.flatten(self.trunk_sigma,outdim=2))
 		self.output = theano.function([self.inpt],self.last_layer.output)
@@ -132,51 +132,48 @@ if __name__ == "__main__":
 	data= pickle_loader("sound/instruments.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
 	
 	data = np.ndarray.astype(data, np.float32)
-	pdb.set_trace()
+
 
 	# map inputs from 0 to 1
 	# patch and shape for the CNN
 	mean = np.mean(data)
 	std = np.std(data)
 	#data = (data -mean)/std
-	data = data.reshape(data.shape[0],1,1,data.shape[1])
+	data = data.reshape(data.shape[0],1,data.shape[1],1)
 	data = data+1
 	dim_z = 10
 	#enable interactive plotting
 
 	# train and test
 	#idx = np.random.permutation(data.shape[0])
-	x_train = data[:4,:,:,:];x_test = data
+	x_train = data[:2,:,:,:];x_test = data
 	print x_train.dtype
-	pdb.set_trace()
 	net = convVAE(dim_z,x_train,x_test)
 	# tic = time.time()
 	# out = net.test_fast_layer2(net.x_train)
 	# toc = time.time()
 	# tic2 = time.time()
-	tic = time.time()
-	out2 = net.deconvolve2(net.x_train)
-	toc = time.time()
-	pdb.set_trace()
+	# tic = time.time()
+	# out2 = net.convolve1(net.x_train)
+	# toc = time.time()
+	# pdb.set_trace()
 
 
 
-	# iterations = 400
-	# disc = 1.01
-	# f1 = plt.figure(1)
-	# print "F1",f1.number
-	# print "params",len(net.params)
-	# prev = net.params[6].get_value()
-	# no_of_filters = 3
-	# for i in range(iterations):
-	# 	net.iterate()
-	# 	print "Prior",net.get_prior(net.x_train)
-	# 	#plot_filters(net.params[12],f1,interactive=True)
-	# 	diff = prev - net.params[6].get_value()
-	# 	#print diff
-	# 	print prev
+	iterations = 400
+	disc = 1.01
+	print "params",len(net.params)
+	prev = net.params[6].get_value()
+	no_of_filters = 3
+	for i in range(iterations):
+		net.iterate()
+		print "Prior",net.get_prior(net.x_train)
+		#plot_filters(net.params[12],f1,interactive=True)
+		diff = prev - net.params[6].get_value()
+		#print diff
+		print prev
 		
-	# 	rows = 1;columns = 3;
+		rows = 1;columns = 3;
 
 		
 	# 	print "ITERATION",i
