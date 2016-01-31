@@ -30,7 +30,6 @@ class convVAE(object):
 		self.momentum = 0.3
 		self.performance = {"train":[],"test":[]}
 		self.inpt = T.ftensor4(name='input')
-		self.inpt.tag.test_value = x_train
 		self.dim_z = dim_z
 		self.generative_z = theano.shared(np.zeros([1,dim_z])).astype(theano.config.floatX)
 		
