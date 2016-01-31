@@ -145,7 +145,7 @@ class one_d_conv_layer_fast(object):
             dtype=inpt.dtype), name =self.param_names[1],borrow =False)
 		conv_out = conv.conv2d(inpt, W.dimshuffle(0,3,2,1),subsample=(1,1),border_mode = "valid")
 		if activation!=None:
-			output = self.activation(conv_out)+ b.dimshuffle('x', 0, 'x', 'x')
+			output = self.activation(conv_out+ b.dimshuffle('x', 0, 'x', 'x'))
 		else:
 			output = conv_out + b.dimshuffle('x', 0, 'x', 'x')
 		self.params = [W,b]
