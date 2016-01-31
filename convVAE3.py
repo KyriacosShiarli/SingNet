@@ -26,12 +26,13 @@ class convVAE(object):
 		####################################### SETTINGS ###################################
 		self.x_train = x_train;self.x_test = x_test;
 		self.batch_size = 2.
-		self.learning_rate = theano.shared(0.00005)
+		self.learning_rate = theano.shared(0.00005).astype(theano.config.floatX)
 		self.momentum = 0.3
 		self.performance = {"train":[],"test":[]}
-		self.inpt = T.tensor4(name='input')
+		self.inpt = T.ftensor4(name='input')
+		self.inpt.tag.test_value = x_train
 		self.dim_z = dim_z
-		self.generative_z = theano.shared(np.zeros([1,dim_z]))
+		self.generative_z = theano.shared(np.zeros([1,dim_z])).astype(theano.config.floatX)
 		
 		self.generative = False
 		#self.y = T.matrix(name="y")
@@ -74,9 +75,8 @@ class convVAE(object):
 		self.cost = self.lower_bound()
 		self.mse = self.MSE()
 		#self.likelihood = self.log_px_z()
-		print "gothere"
 		self.get_cost = theano.function([self.inpt],[self.cost,self.mse])
-		print "gothere"
+
 		#self.get_likelihood = theano.function([self.layer1.inpt],[self.likelihood])
 		self.derivatives = T.grad(self.cost,self.params)
 		self.get_gradients = theano.function([self.inpt],self.derivatives)
@@ -101,7 +101,6 @@ class convVAE(object):
 		m = T.sum(T.flatten((self.inpt-self.trunc_output)**2,outdim=2),axis=1)
 		return T.mean(m- self.latent_layer.prior)
 	def iterate(self):
-		print "HERE"
 		print self.batch_size;
 		num_minibatches = int(np.ceil(self.x_train.shape[0]/self.batch_size))
 		print num_minibatches
@@ -132,6 +131,10 @@ class convVAE(object):
 
 if __name__ == "__main__":
 	data= pickle_loader("sound/instruments.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
+	
+	data = np.ndarray.astype(data, np.float32)
+	pdb.set_trace()
+
 	# map inputs from 0 to 1
 	# patch and shape for the CNN
 	mean = np.mean(data)
@@ -145,12 +148,16 @@ if __name__ == "__main__":
 	# train and test
 	#idx = np.random.permutation(data.shape[0])
 	x_train = data[:4,:,:,:];x_test = data
+	print x_train.dtype
+	pdb.set_trace()
 	net = convVAE(dim_z,x_train,x_test)
 	# tic = time.time()
 	# out = net.test_fast_layer2(net.x_train)
 	# toc = time.time()
 	# tic2 = time.time()
+	tic = time.time()
 	out2 = net.deconvolve2(net.x_train)
+	toc = time.time()
 	pdb.set_trace()
 
 

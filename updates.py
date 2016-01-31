@@ -106,7 +106,7 @@ def adadelta(params,derivatives,learning_rate, rho=0.95, epsilon=1e-6):
 def momentum_update(params,derivatives,learning_rate,momentum):
 	updates = []
 	for param,der in zip(params,derivatives):
-		velocity = theano.shared(param.get_value()*0.,broadcastable = param.broadcastable)
+		velocity = theano.shared(param.get_value()*0.,broadcastable = param.broadcastable).astype(theano.config.floatX)
 		# velocity should be negative
 		updates.append((param,param + learning_rate*velocity))
 		updates.append((velocity,momentum*velocity - (1.-momentum)*learning_rate*der))

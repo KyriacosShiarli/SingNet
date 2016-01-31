@@ -77,8 +77,8 @@ class variational_gauss_layer(object):
             dtype=inpt.dtype), name ='b_post_sigm')        #Find the hidden variable z
 		self.mu_encoder = T.dot(self.inpt,W_mu) +b_mu
 		self.log_sigma_encoder =0.5*(T.dot(self.inpt,W_sigma) + b_sigma)
-		self.output = self.mu_encoder +T.exp(self.log_sigma_encoder)*self.eps
-		self.prior =  0.5* T.sum(1 + 2*self.log_sigma_encoder - self.mu_encoder**2 - T.exp(self.log_sigma_encoder)**2,axis = 1)
+		self.output =self.mu_encoder +T.exp(self.log_sigma_encoder)*self.eps.astype(theano.config.floatX)
+		self.prior =  0.5* T.sum(1 + 2*self.log_sigma_encoder - self.mu_encoder**2 - T.exp(self.log_sigma_encoder)**2,axis = 1).astype(theano.config.floatX)
 		self.params = [W_mu,b_mu,W_sigma,b_sigma]
 
 
@@ -116,7 +116,7 @@ class one_d_conv_layer(object):
 		else:
 			output = conv_out + b.dimshuffle('x', 0, 'x', 'x')
 		self.params = [W,b]
-		self.output = ds.max_pool_2d(output,[1,int(self.pool)],ignore_border = False)
+		self.output = ds.max_pool_2d(output,[1,int(self.pool)],ignore_border = False).astype(theano.config.floatX)
 
 class one_d_conv_layer_fast(object):
 	def __init__(self,inpt,no_filters,in_channels,filter_length,activation = relu,param_names = ["W","b"],pool = 1):
@@ -134,7 +134,7 @@ class one_d_conv_layer_fast(object):
 		rng = np.random.RandomState(23455)
 		inpt = self.inpt
 		# initialise layer 1 weight vector. 
-		w_shp = (self.no_of_filters, 1.,self.in_channels, self.filter_length)
+		w_shp = (self.no_of_filters,self.in_channels, 1., self.filter_length)
 		w_bound = np.sqrt(self.in_channels* self.filter_length)
 		W = theano.shared(value = np.asarray(
         rng.normal(0.,0.001,size=w_shp),
@@ -143,13 +143,13 @@ class one_d_conv_layer_fast(object):
 		b = theano.shared(value = np.asarray(
             rng.uniform(low=-.0, high=.0, size=b_shp),
             dtype=inpt.dtype), name =self.param_names[1],borrow =False)
-		conv_out = conv.conv2d(inpt, W,subsample=(1,1),border_mode = "valid")
+		conv_out = conv.conv2d(inpt, W.dimshuffle(0,2,1,3),subsample=(1,1),border_mode = "valid")
 		if activation!=None:
 			output = self.activation(conv_out) + b.dimshuffle('x', 0, 'x', 'x')
 		else:
 			output = conv_out + b.dimshuffle('x', 0, 'x', 'x')
 		self.params = [W,b]
-		self.output = ds.max_pool_2d(output,[1,int(self.pool)],ignore_border = False)
+		self.output = ds.max_pool_2d(output,[1,int(self.pool)],ignore_border = False).astype(theano.config.floatX)
 
 class one_d_deconv_layer(object):
 	def __init__(self,inpt,no_filters,in_channels,filter_length,activation = T.nnet.softplus,param_names = ["W","b"],pool =1,distribution = False):
@@ -191,9 +191,9 @@ class one_d_deconv_layer(object):
 			self.log_sigma = conv_out_sigma + b_sigma.dimshuffle('x', 0, 'x', 'x')
 			self.params +=[W_sigma,b_sigma]
 		if activation!=None:
-			self.output = self.activation(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
+			self.output = self.activation(conv_out + b.dimshuffle('x', 0, 'x', 'x')).astype(theano.config.floatX)
 		else:
-			self.output = conv_out + b.dimshuffle('x', 0, 'x', 'x')
+			self.output = conv_out + b.dimshuffle('x', 0, 'x', 'x').astype(theano.config.floatX)
 
 
 class one_d_deconv_layer_fast(object):
@@ -212,7 +212,8 @@ class one_d_deconv_layer_fast(object):
 		rng = np.random.RandomState(235)
 		inpt = self.inpt
 		# initialise layer 1 weight vector. 
-		w_shp = (self.no_of_filters, 1.,self.in_channels, self.filter_length)
+		#w_shp = (self.no_of_filters, 1.,self.in_channels, self.filter_length)
+		w_shp = (self.no_of_filters, self.in_channels,1., self.filter_length)
 		w_bound = np.sqrt(self.in_channels* self.filter_length)
 		W = theano.shared(value = np.asarray(
         rng.normal(0.,0.001,size=w_shp),
@@ -222,7 +223,7 @@ class one_d_deconv_layer_fast(object):
             rng.uniform(low=-.0, high=.0, size=b_shp),
             dtype=inpt.dtype), name =self.param_names[1],borrow = True)
 		upsampled = self.inpt.repeat(int(self.pool),axis = 3)
-		conv_out = conv.conv2d(upsampled, W,subsample=(1,1),border_mode = "full")
+		conv_out = conv.conv2d(upsampled, W.dimshuffle(0,2,1,3),subsample=(1,1),border_mode = "full")
 		conv_out = conv_out[:,:,int(self.in_channels-1):-int(self.in_channels-1),:]
 		self.params = [W,b]
 		if self.distribution==True:
@@ -233,14 +234,14 @@ class one_d_deconv_layer_fast(object):
 	            rng.uniform(low=-.0, high=.0, size=b_shp),
 	            dtype=inpt.dtype), name ='b_sigm',borrow = True)
 			#self.output =conv_out + b.dimshuffle('x', 0, 'x', 'x')
-			conv_out_sigma = conv.conv2d(upsampled, W_sigma,subsample=(1,1),border_mode = "full",)
+			conv_out_sigma = conv.conv2d(upsampled, W_sigma.dimshuffle(0,2,1,3),subsample=(1,1),border_mode = "full",)
 			conv_out_sigma = conv_out_sigma[:,:,int(self.in_channels-1):-int(self.in_channels-1),:]
 			self.log_sigma = conv_out_sigma + b_sigma.dimshuffle('x', 0, 'x', 'x')
 			self.params +=[W_sigma,b_sigma]
 		if activation!=None:
-			self.output = self.activation(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
+			self.output = self.activation(conv_out + b.dimshuffle('x', 0, 'x', 'x')).astype(theano.config.floatX)
 		else:
-			self.output = conv_out + b.dimshuffle('x', 0, 'x', 'x')
+			self.output = conv_out + b.dimshuffle('x', 0, 'x', 'x').astype(theano.config.floatX)
 	
 
 		
