@@ -44,12 +44,9 @@ def load_and_split(directory,duration):
 
 def load_and_split_samples(directory,samples):
 	rate,all_data= scipy.io.wavfile.read(directory+".wav")
-	pdb.set_trace()
-
 	all_data = map_to_range_symmetric(all_data,[-32767. ,32767. ],[-1,1])
 	num_datapoints = np.floor(all_data.shape[0]/samples)
 	rem = np.floor(all_data.shape[0]%samples)
-	pdb.set_trace()
 	data= np.reshape(all_data,(num_datapoints,samples))
 	pickle_saver(data,directory+".pkl")
 
