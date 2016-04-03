@@ -36,6 +36,9 @@ for i in range(iterations):
 
 net1.dropout_prob.set_value(np.float32(0.0))
 net2.dropout_prob.set_value(np.float32(0.0))
+pickle_saver(net1.params,"models/net_boost.pkl")
+pickle_saver(net2.params,"models/net_no_boost.pkl")
+
 plot_size = 20
 idxx = np.random.randint(0,self.x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
