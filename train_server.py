@@ -1,4 +1,4 @@
-from convVAE2_basic import ConvVAE
+from convVAE2_basic import convVAE
 import numpy as np
 import pdb
 from matplotlib import pyplot as plt
@@ -35,7 +35,7 @@ for i in range(iterations):
     print net2.performance['train'][-1]
 
 net1.dropout_prob.set_value(np.float32(0.0))
-net2.dropout_prob.set_value(np.float32(0.0))]
+net2.dropout_prob.set_value(np.float32(0.0))
 plot_size = 20
 idxx = np.random.randint(0,self.x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
