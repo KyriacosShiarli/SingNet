@@ -110,5 +110,5 @@ def momentum_update(params,derivatives,learning_rate,momentum):
 		# velocity should be negative
 		updates.append((param,param + learning_rate*velocity))
 		updates.append((velocity,momentum*velocity - (1.-momentum)*learning_rate*der))
-	updates.append((learning_rate,learning_rate*1.000))
+	#updates.append((learning_rate,learning_rate*1.000))
 	return updates

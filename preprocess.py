@@ -42,6 +42,17 @@ def load_and_split(directory,duration):
 	data={"data":out_data,"sample rate":rate}
 	pickle_saver(data,directory+".pkl")
 
+def load_and_split_samples(directory,samples):
+	rate,all_data= scipy.io.wavfile.read(directory+".wav")
+	pdb.set_trace()
+
+	all_data = map_to_range_symmetric(all_data,[-32767. ,32767. ],[-1,1])
+	num_datapoints = np.floor(all_data.shape[0]/samples)
+	rem = np.floor(all_data.shape[0]%samples)
+	pdb.set_trace()
+	data= np.reshape(all_data,(num_datapoints,samples))
+	pickle_saver(data,directory+".pkl")
+
 
 def load_pure_tone_data():
 
@@ -56,7 +67,4 @@ def load_pure_tone_data():
 	pickle_saver(all_data,"sound/puretone_data.pkl")
 
 if __name__ == "__main__":
-	#load_and_split("sound/mistakidis",0.5)
-	data = np.load("sound/instruments_trx.npy")
-	data = map_to_range(data,[-32767. ,32767. ],[-1,1],from_data=False)
-	pdb.set_trace()
+	load_and_split_samples("sound/sines",88)

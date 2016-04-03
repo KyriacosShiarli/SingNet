@@ -7,6 +7,7 @@ import pdb
 from preprocess import map_to_range
 from updates import momentum_update,adam,adadelta
 from layers import one_d_conv_layer,hidden_layer,variational_gauss_layer,one_d_deconv_layer,one_d_conv_layer_fast,one_d_deconv_layer_fast
+from layers import batchnorm
 from layers import dropout
 from collections import OrderedDict
 from theano.tensor.signal import downsample as ds
@@ -28,7 +29,7 @@ class convVAE(object):
 		####################################### SETTINGS ###################################
 		self.x_train = x_train;self.x_test = x_test;
 		self.diff=diff
-		self.batch_size = 100.
+		self.batch_size = 10.
 		self.learning_rate = theano.shared(np.float32(0.0008))
 		self.momentum = 0.3
 		self.performance = {"train":[],"test":[]}
@@ -40,29 +41,25 @@ class convVAE(object):
 		self.generative = False
 		self.out_distribution=False
 		#self.y = T.matrix(name="y")
-		self.in_filters = [28,28,3]
-		self.filter_lengths = [5.,5.,5.]
+		self.in_filters = [28,28,28]
+		self.filter_lengths = [10.,10.,10.]
 		self.params = []
 		#magic = 73888.
 		self.magic =magic
 
 		self.dropout_symbolic = T.fscalar()
-		self.dropout_prob = theano.shared(np.float32(0.5))
+		self.dropout_prob = theano.shared(np.float32(0.0))
 		####################################### LAYERS ######################################
 		# LAYER 1 ##############################
 		self.conv1 = one_d_conv_layer(self.inpt,self.in_filters[0],1,self.filter_lengths[0],param_names = ["W1",'b1']) 
 		self.params+=self.conv1.params
-		self.nl1 = self.activation(self.conv1.output)
-		self.maxpool1 = ds.max_pool_2d(self.nl1,[2,1],ignore_border = False).astype(theano.config.floatX)
-		self.layer1_out = self.maxpool1
+		self.bn1 = batchnorm(self.conv1.output)
+		self.nl1 = self.activation(self.bn1.X)
+		self.maxpool1 = ds.max_pool_2d(self.nl1,[3,1],st=[2,1],ignore_border = False).astype(theano.config.floatX)
+		self.layer1_out = dropout(self.maxpool1,self.dropout_symbolic)
 		#self.layer1_out = self.maxpool1
 		# LAYER2 ################################
-		self.conv2 = one_d_conv_layer(self.layer1_out,self.in_filters[0],self.in_filters[0],self.filter_lengths[0],param_names = ["W2",'b2']) 
-		self.params+=self.conv2.params
-		self.nl2 = self.activation(self.conv2.output)
-		self.maxpool2 = ds.max_pool_2d(self.nl2,[2,1],ignore_border = False).astype(theano.config.floatX)
-		self.layer2_out = dropout(self.maxpool2,self.dropout_symbolic)
-		self.flattened = T.flatten(self.layer2_out,outdim = 2)
+		self.flattened = T.flatten(self.layer1_out,outdim = 2)
 		# Variational Layer #####################
 		self.latent_layer = variational_gauss_layer(self.flattened,self.magic,dim_z)
 		self.params+=self.latent_layer.params
@@ -72,14 +69,11 @@ class convVAE(object):
 		self.params+=self.hidden_layer.params
 		self.hid_out = dropout(self.activation(self.hidden_layer.output).reshape((self.inpt.shape[0],self.in_filters[-1],int(self.magic/self.in_filters[-1]),1)),self.dropout_symbolic)
 		# Devonvolutional 1 ######################
-		self.deconv1 = one_d_deconv_layer(self.hid_out,self.in_filters[2],self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W3",'b3'],distribution=False)
+		self.deconv1 = one_d_deconv_layer(self.hid_out,1,self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W3",'b3'],distribution=False)
 		self.params+=self.deconv1.params
-		self.nl_deconv1 = self.activation(self.deconv1.output)
-		# Deconvolutional 2 ######################
-		self.deconv2 = one_d_deconv_layer(self.nl_deconv1,1,self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W4",'b4'],distribution=self.out_distribution)
-		self.params+=self.deconv2.params
-		self.tanh_out = self.deconv2.output
-		self.last_layer = self.deconv2
+		#self.nl_deconv1 = dropout(self.activation(self.deconv1.output),self.dropout_symbolic)
+		self.tanh_out = self.deconv1.output
+		self.last_layer = self.deconv1
 
 		if self.out_distribution==True:
 			self.trunk_sigma =  self.last_layer.log_sigma[:,:,:self.inpt.shape[2],:]
@@ -164,16 +158,13 @@ class convVAE(object):
 
 
 if __name__ == "__main__":
-	data= pickle_loader("sound/sine_mixture.pkl")["data"] # data dictionary contains a "data" entry and a "sample rate" entry
-	pdb.set_trace()
+	data= pickle_loader("sound/sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
 	data = np.ndarray.astype(data, np.float32)
 
 	data2 = data[:,1:]
 	data1 = data[:,:-1]
 
-	dif = 1+np.absolute((data1-data2))
-
-	pdb.set_trace()
+	dif = np.hstack([1+np.absolute((data1-data2)/2),np.ones([data.shape[0],1]).astype(np.float32)])
 
 	# map inputs from 0 to 1
 	# patch and shape for the CNN
@@ -186,8 +177,8 @@ if __name__ == "__main__":
 
 	# train and test
 	#idx = np.random.permutation(data.shape[0])
-	x_train = data[:200,:,:40,:];x_test = data
-	dif = dif[:200,:40]
+	x_train = data[:,:,:,:];x_test = data
+	dif = dif[:,:]
 	# Discover the magic number
 	net = convVAE(dim_z,x_train,x_test)
 	get_magic = net.get_flattened(net.x_train[:2,:,:,:])
@@ -195,7 +186,7 @@ if __name__ == "__main__":
 	net1 = convVAE(dim_z,x_train,x_test,diff = dif,magic = get_magic.shape[1])
 	net2 = convVAE(dim_z,x_train,x_test,diff=None,magic = get_magic.shape[1])
 	print "magic_value", net.magic
-	iterations = 4000
+	iterations = 1000
 	disc = 1.01
 	for i in range(iterations):
 		net1.iterate()
