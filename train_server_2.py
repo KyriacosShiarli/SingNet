@@ -1,9 +1,7 @@
-from convVAE2_basic import convVAE
+from convVAE2_basic2 import convVAE
 import numpy as np
 import pdb
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from preprocess import pickle_saver,pickle_loader
 
 
@@ -28,7 +26,7 @@ get_magic = net.get_flattened(net.x_train[:2,:,:,:])
 # actual nework
 net1 = convVAE(dim_z,x_train,x_test,diff = dif,magic = get_magic.shape[1])
 net2 = convVAE(dim_z,x_train,x_test,diff=None,magic = get_magic.shape[1])
-iterations = 100
+iterations = 20
 disc = 1.01
 for i in range(iterations):
     net1.iterate()
@@ -38,17 +36,16 @@ for i in range(iterations):
 
 net1.dropout_prob.set_value(np.float32(0.0))
 net2.dropout_prob.set_value(np.float32(0.0))
-pickle_saver(net1.params,"models/net_boost_20epoch.pkl")
-pickle_saver(net2.params,"models/net_no_boost_20epoch.pkl")
+pickle_saver(net1.params,"models/net_boost2.pkl")
+pickle_saver(net2.params,"models/net_no_boost2.pkl")
 
 plot_size = 100
 idxx = np.random.randint(0,x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
 ou2 = net2.output(x_train[idxx])
 for i in range(ou2.shape[0]):
-    #plt.ioff()
-    fig=plt.figure()
+    plt.figure()
     plt.plot(ou1[i,0,:,0],color = "g")
     plt.plot(ou2[i,0,:,0],color = "b")
     plt.plot(x_train[i,0,:,0],color = "r")
-    fig.savefig("images/"+str(i)+"_compare_20epoch.png",cmap=plt.cm.binary)
+    plt.savefig("images/"+str(i)+"_compare2.png",cmap=plt.cm.binary)
