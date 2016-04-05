@@ -45,6 +45,9 @@ plot_size = 100
 idxx = np.random.randint(0,x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
 ou2 = net2.output(x_train[idxx])
+
+results = {"original":x_train[idxx],"boosted":ou1,"no_boost":ou2}
+pickle_saver(results,"images/results_for_figures.pkl")
 for i in range(ou2.shape[0]):
     #plt.ioff()
     fig=plt.figure()

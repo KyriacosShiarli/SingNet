@@ -51,14 +51,14 @@ class convVAE(object):
 		self.dropout_prob = theano.shared(np.float32(0.0))
 		####################################### LAYERS ######################################
 		# LAYER 1 ##############################
-		self.conv1 = one_d_conv_layer(self.inpt,self.in_filters[0],1,self.filter_lengths[0],param_names = ["W1",'b1'],border_mode=[5,5]) 
+		self.conv1 = one_d_conv_layer(self.inpt,self.in_filters[0],1,self.filter_lengths[0],param_names = ["W1",'b1']) 
 		self.params+=self.conv1.params
 		self.bn1 = batchnorm(self.conv1.output)
 		self.nl1 = self.activation(self.bn1.X)
 		self.maxpool1 = ds.max_pool_2d(self.nl1,[3,1],st=[2,1],ignore_border = False).astype(theano.config.floatX)
 		self.layer1_out = dropout(self.maxpool1,self.dropout_symbolic)
 		# LAYER 2 ##############################
-		self.conv2 = one_d_conv_layer(self.layer1_out,self.in_filters[1],1,self.filter_lengths[1],param_names = ["W2",'b2'],border_mode=[5,5]) 
+		self.conv2 = one_d_conv_layer(self.layer1_out,self.in_filters[1],self.in_filters[0],self.filter_lengths[1],param_names = ["W2",'b2']) 
 		self.params+=self.conv2.params
 		self.bn2 = batchnorm(self.conv2.output)
 		self.nl2 = self.activation(self.bn2.X)
@@ -76,10 +76,10 @@ class convVAE(object):
 		self.params+=self.hidden_layer.params
 		self.hid_out = dropout(self.activation(self.hidden_layer.output).reshape((self.inpt.shape[0],self.in_filters[-1],int(self.magic/self.in_filters[-1]),1)),self.dropout_symbolic)
 		# Deconv 1 ######################
-		self.deconv1 = one_d_deconv_layer(self.hid_out,1,self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W3",'b3'],distribution=False,border_mode=[5,5])
+		self.deconv1 = one_d_deconv_layer(self.hid_out,self.in_filters[2],self.in_filters[2],self.filter_lengths[2],pool=2.,param_names = ["W3",'b3'],distribution=False)
 		self.params+=self.deconv1.params
 		# Deconv 2 ######################
-		self.deconv2 = one_d_deconv_layer(self.deconv1.output,1,self.in_filters[3],self.filter_lengths[3],pool=2.,param_names = ["W4",'b4'],distribution=False,border_mode=[5,5])
+		self.deconv2 = one_d_deconv_layer(self.deconv1.output,1,self.in_filters[3],self.filter_lengths[3],pool=2.,param_names = ["W4",'b4'],distribution=False)
 		self.params+=self.deconv2.params
 		#self.nl_deconv1 = dropout(self.activation(self.deconv1.output),self.dropout_symbolic)
 		self.tanh_out = self.deconv2.output

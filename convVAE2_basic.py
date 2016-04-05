@@ -219,6 +219,7 @@ if __name__ == "__main__":
 	net2.dropout_prob.set_value(np.float32(0.0))
 	ou1 = net1.output(x_train[:50])
 	ou2 = net2.output(x_train[:50])
+
 	for i in range(ou2.shape[0]):
 		if i <100:
 			plt.figure()
