@@ -37,7 +37,7 @@ class convVAE(object):
 		self.df = T.fmatrix(name='differential')
 		self.dim_z = dim_z
 		self.generative_z = theano.shared(np.zeros([1,dim_z])).astype(theano.config.floatX)
-		self.activation =T.abs_
+		self.activation =relu
 		self.generative = False
 		self.out_distribution=False
 		#self.y = T.matrix(name="y")
