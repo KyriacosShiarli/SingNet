@@ -28,7 +28,7 @@ get_magic = net.get_flattened(net.x_train[:2,:,:,:])
 # actual nework
 net1 = convVAE(dim_z,x_train,x_test,diff = dif,magic = get_magic.shape[1])
 net2 = convVAE(dim_z,x_train,x_test,diff=None,magic = get_magic.shape[1])
-iterations = 100
+iterations = 200
 disc = 1.01
 for i in range(iterations):
     net1.iterate()
@@ -38,8 +38,8 @@ for i in range(iterations):
 
 net1.dropout_prob.set_value(np.float32(0.0))
 net2.dropout_prob.set_value(np.float32(0.0))
-pickle_saver(net1.params,"models/net_boost_20epoch.pkl")
-pickle_saver(net2.params,"models/net_no_boost_20epoch.pkl")
+pickle_saver(net1.params,"models/net_boost_basic.pkl")
+pickle_saver(net2.params,"models/net_no_boost_basic.pkl")
 
 plot_size = 100
 idxx = np.random.randint(0,x_train.shape[0],plot_size)

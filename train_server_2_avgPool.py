@@ -1,4 +1,4 @@
-from convVAE2_basic2 import convVAE
+from convVAE2_basic2_avgPool import convVAE
 import numpy as np
 import pdb
 from matplotlib import pyplot as plt
@@ -36,15 +36,15 @@ for i in range(iterations):
 
 net1.dropout_prob.set_value(np.float32(0.0))
 net2.dropout_prob.set_value(np.float32(0.0))
-pickle_saver(net1.params,"models/net_boost_2layer.pkl")
-pickle_saver(net2.params,"models/net_no_boost_2layer.pkl")
+pickle_saver(net1.params,"models/net_boost_2layer_avgPool.pkl")
+pickle_saver(net2.params,"models/net_no_boost_2layer_avgPool.pkl")
 
 plot_size = 100
 idxx = np.random.randint(0,x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
 ou2 = net2.output(x_train[idxx])
 results = {"original":x_train[idxx],"boosted":ou1,"no_boost":ou2}
-pickle_saver(results,"images/results_for_figures_2layer.pkl")
+pickle_saver(results,"images/results_for_figures_2layer_avgPool.pkl")
 for i in range(ou2.shape[0]):
     plt.figure()
     plt.plot(ou1[i,0,:,0],color = "g")

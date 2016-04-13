@@ -1,7 +1,9 @@
-from convVAE2_basic2 import convVAE
+from convVAE2_basic_avgPool import convVAE
 import numpy as np
 import pdb
-from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from preprocess import pickle_saver,pickle_loader
 
 
@@ -36,18 +38,20 @@ for i in range(iterations):
 
 net1.dropout_prob.set_value(np.float32(0.0))
 net2.dropout_prob.set_value(np.float32(0.0))
-pickle_saver(net1.params,"models/net_boost_2layer.pkl")
-pickle_saver(net2.params,"models/net_no_boost_2layer.pkl")
+pickle_saver(net1.params,"models/net_boost_basic_avgPool.pkl")
+pickle_saver(net2.params,"models/net_no_boost_basic_avgPool.pkl")
 
 plot_size = 100
 idxx = np.random.randint(0,x_train.shape[0],plot_size)
 ou1 = net1.output(x_train[idxx])
 ou2 = net2.output(x_train[idxx])
+
 results = {"original":x_train[idxx],"boosted":ou1,"no_boost":ou2}
-pickle_saver(results,"images/results_for_figures_2layer.pkl")
+pickle_saver(results,"images/results_for_figures_avgPool.pkl")
 for i in range(ou2.shape[0]):
-    plt.figure()
+    #plt.ioff()
+    fig=plt.figure()
     plt.plot(ou1[i,0,:,0],color = "g")
     plt.plot(ou2[i,0,:,0],color = "b")
     plt.plot(x_train[i,0,:,0],color = "r")
-    plt.savefig("images/"+str(i)+"_compare2.png",cmap=plt.cm.binary)
+    fig.savefig("images/"+str(i)+"_compare_20epoch.png",cmap=plt.cm.binary)
