@@ -36,7 +36,7 @@ class convVAE(object):
 		self.inpt = T.ftensor4(name='input')
 		self.df = T.fmatrix(name='differential')
 		self.dim_z = dim_z
-		self.generative_z = theano.shared(np.zeros([1,dim_z])).astype(theano.config.floatX)
+		self.generative_z = theano.shared(np.float32(np.zeros([1,dim_z])))
 		self.activation =T.abs_
 		self.generative = False
 		self.out_distribution=False
@@ -101,7 +101,7 @@ class convVAE(object):
 		#self.deconvolve2 = theano.function([self.inpt],self.deconv2.output)
 		#self.sig_out = theano.function([self.inpt],T.flatten(self.trunk_sigma,outdim=2))
 		self.output = theano.function([self.inpt],self.trunc_output,givens=[[self.dropout_symbolic,self.dropout_prob]])
-		#self.generate_from_z = theano.function([self.inpt],self.trunc_output,givens = [[self.latent_out,self.generative_z]])
+		self.generate_from_z = theano.function([self.inpt],self.trunc_output,givens = [[self.dropout_symbolic,self.dropout_prob],[self.latent_out,self.generative_z]])
 		
 		self.cost = self.MSE()
 		self.mse = self.MSE()
@@ -161,10 +161,10 @@ class convVAE(object):
 		if z == None:
 			z = np.zeros([1,self.dim_z])
 		else:
-			z = np.array([z])
-		self.generative_z.set_value(z)
-		inp = np.zeros([1,self.x_train.shape[1],self.x_train.shape[2],self.x_train.shape[3]])
-		return np.squeeze(self.generate_from_z(inp))
+			z = np.array(z)
+		self.generative_z.set_value(np.float32(z))
+		inp =np.zeros([z.shape[0],self.x_train.shape[1],self.x_train.shape[2],self.x_train.shape[3]])
+		return np.squeeze(self.generate_from_z(np.float32(inp)))
 
 
 if __name__ == "__main__":
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
 	# train and test
 	#idx = np.random.permutation(data.shape[0])
-	x_train = data[:,:,:,:];x_test = data
+	x_train = data[:20,:,:,:];x_test = data
 	dif = dif[:,:]
 	# Discover the magic number
 	net = convVAE(dim_z,x_train,x_test)
@@ -224,7 +224,7 @@ if __name__ == "__main__":
 			# 	plt.pause(0.01)	
 			# 	plt.draw()
 		print net2.performance['train'][-1]
-
+	pickle_saver(net1.params,"models/home_train.pkl")
 	net1.dropout_prob.set_value(np.float32(0.0))
 	net2.dropout_prob.set_value(np.float32(0.0))
 	ou1 = net1.output(x_train[:50])
