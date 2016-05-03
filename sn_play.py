@@ -1,6 +1,6 @@
 from preprocess import pickle_loader,map_to_range_symmetric,map_to_range
 import mido
-import pygame
+#import pygame
 import numpy as np
 import theano
 
@@ -157,9 +157,9 @@ def path_write(nnet,sample_rate,duration=5,data_points = 2,name = "path_play",):
 
 
 if __name__ == "__main__":
-    from convVAE_home import convVAE
+    from convVAE2_basic2 import convVAE
 
-    data= pickle_loader("sound/sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
+    data= pickle_loader("./sound/sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
     data = np.ndarray.astype(data, np.float32)
     print data.shape
     # map inputs from 0 to 1
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     print "GOTHERE"
     # actual nework
     net = convVAE(dim_z,x_train,x_test,magic = get_magic.shape[1])
-    params = pickle_loader("models/net_home.pkl")
+    params = pickle_loader("models/net_boost_2layer.pkl")
     print "parameters loaded"
     #other is tenpoints.pkl
     for i,param in enumerate(params):
@@ -185,6 +185,6 @@ if __name__ == "__main__":
     #plot_filters(net.params[0],f1) 
     sample_rate = 880
     #device_play(net,sample_rate,duration=2000)
-    path_write(net,sample_rate,duration=0.5,data_points=100)
+    path_write(net,sample_rate,duration=2,data_points=100)
 
 
