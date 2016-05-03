@@ -112,7 +112,6 @@ def sample_write(nnet,sample_rate,name ="default",duration=5,sample_for_latents 
     z_val = np.random.uniform(latent_min,latent_max,[loops,nnet.dim_z]).astype(np.float32)
 
     random_out = np.ravel(nnet.generate(z_val))
-    pdb.set_trace()
     random_out = np.int16(random_out/np.max(np.abs(random_out)) * 32767)
     trainset_out = np.ravel(nnet.output(nnet.x_train[idx]))
     trainset_out =np.int16(trainset_out/np.max(np.abs(trainset_out)) * 32767)
@@ -134,10 +133,31 @@ def path_play(n_code, n_paths, n_steps=480):
     paths = np.asarray(paths)
     return paths
 
+def path_write(nnet,sample_rate,duration=5,data_points = 2,name = "path_play",):
+    loops = sample_rate*duration/nnet.x_train.shape[2]
+    idx = np.random.randint(0,nnet.x_train.shape[0],data_points+1)
+    latents = nnet.get_latent_states(nnet.x_train[idx])
+    paths = []
+    for i in range(data_points-1):
+        for weight in np.linspace(0.,1.,loops):
+            paths.append((latents[i,:]*(1-weight) + latents[i+1,:]*weight).astype(np.float32))
+    paths = np.asarray(paths)
+    random_out = np.ravel(nnet.generate(paths))
+    random_out = np.int16(random_out/np.max(np.abs(random_out)) * 32767)
+    original = np.ravel(nnet.x_train[idx])
+    original = np.int16(original/np.max(np.abs(original)) * 32767)
+    wav.write("sound/"+name+"_paths.wav",sample_rate,random_out)
+    wav.write("sound/"+name+"_original.wav",sample_rate,original)
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
-    from convVAE2_basic import convVAE
+    from convVAE_home import convVAE
 
     data= pickle_loader("sound/sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
     data = np.ndarray.astype(data, np.float32)
@@ -156,18 +176,15 @@ if __name__ == "__main__":
     print "GOTHERE"
     # actual nework
     net = convVAE(dim_z,x_train,x_test,magic = get_magic.shape[1])
-    params = pickle_loader("models/net_boost_home_basic.pkl")
+    params = pickle_loader("models/net_home.pkl")
     print "parameters loaded"
     #other is tenpoints.pkl
     for i,param in enumerate(params):
         #print param.get_value()
-        temp  = net.params[i].get_value()
         net.params[i].set_value(param.get_value())
-        temp2 = net.params[i].get_value()
-        print temp - temp2
     #plot_filters(net.params[0],f1) 
     sample_rate = 880
     #device_play(net,sample_rate,duration=2000)
-    sample_write(net,sample_rate,duration=15)
+    path_write(net,sample_rate,duration=0.5,data_points=100)
 
 
