@@ -1,0 +1,8 @@
+SingVAE parameters for experiment: 
+------ 
+ 
+Number of filters:  [[5, 5, 5]]
+Filter lengths:  [[10.0, 10.0, 10.0]]
+Latend variables:  5
+Iterations:  100
+Sample rate:  880
