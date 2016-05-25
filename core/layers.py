@@ -5,6 +5,7 @@ import numpy as np
 import pdb
 from theano.tensor.signal import downsample as ds
 from theano.tensor import shared_randomstreams as t_random
+
 def relu(x):
     return T.switch(x<0, 0, x)
 def det_x(a_11,a_12,a_21,a_22):
@@ -163,8 +164,10 @@ class one_d_deconv_layer_zero(object):
 		b = theano.shared(value = np.asarray(
             rng.uniform(low=-.0, high=.0, size=b_shp),
             dtype=inpt.dtype), name =self.param_names[1],borrow = True)
-		#zeros = T.zeros_like(????????) # It should do: create array of size (batch, channels in, length_signal, upsample_factor-1) with zeros in it 
+		zeros = T.zeros_like(inpt.repeat) # It should do: create array of size (batch, channels in, length_signal, upsample_factor-1) with zeros in it 
+		
 		upsampled = T.flatten(T.concatenate((a,b),axis=3),outdim=3)[:,:,:,None]
+		self.upsampled = upsampled
 		conv_out = conv.conv2d(upsampled, W,subsample=(1,1),border_mode = "full")
 		self.params = [W,b]
 		if self.distribution==True:
@@ -182,7 +185,7 @@ class one_d_deconv_layer_zero(object):
 
 
 class one_d_deconv_layer(object):
-	def __init__(self,inpt,no_filters,in_channels,filter_length,param_names = ["W","b"],pool =1,distribution = False):
+	def __init__(self,inpt,no_filters,in_channels,filter_length,param_names = ["W","b"],pool =1,distribution = False,unpooling = "repeat"):
 		self.no_of_filters = no_filters
 		self.in_channels = in_channels
 		self.filter_length = filter_length
@@ -190,6 +193,7 @@ class one_d_deconv_layer(object):
 		self.param_names = param_names
 		self.pool = pool
 		self.distribution=distribution
+		self.unpooling = unpooling
 		self.initialise()
 	def initialise(self):
 		rng = np.random.RandomState(235)
@@ -204,7 +208,12 @@ class one_d_deconv_layer(object):
 		b = theano.shared(value = np.asarray(
             rng.uniform(low=-.0, high=.0, size=b_shp),
             dtype=inpt.dtype), name =self.param_names[1],borrow = True)
-		upsampled = self.inpt.repeat(int(self.pool),axis = 2)
+		if self.unpooling == "repeat":
+			upsampled = self.inpt.repeat(int(self.pool),axis = 2)
+		elif self.unpooling == "zeros":
+			zeros = T.zeros_like(self.inpt.repeat(int(self.pool-1),axis = 3)) # It should do: create array of size (batch, channels in, length_signal, upsample_factor-1) with zeros in it 
+			upsampled = T.flatten(T.concatenate((self.inpt,zeros),axis=3),outdim=3)[:,:,:,None]
+		self.upsampled = upsampled
 		conv_out = conv.conv2d(upsampled, W,subsample=(1,1),border_mode = "full")
 		self.params = [W,b]
 		if self.distribution==True:
