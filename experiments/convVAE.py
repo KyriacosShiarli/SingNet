@@ -175,6 +175,7 @@ if __name__ == "__main__":
 	data_dir = parent+"/data/"
 	plot_dir = current+"/plots/"
 	sound_dir = current+"/sound/"
+	model_dir = current+"/models/"
 	weight_plot_dir = current+"/plots/weights"
 	experiment_name = "vae"
 
@@ -240,7 +241,7 @@ if __name__ == "__main__":
 			plt.plot(x_train[i,0,:,0],color = "r")
 			plt.savefig(plot_dir+str(i)+"_compare.png",cmap=plt.cm.binary)
 	# The model
-	pickle_saver(net2.params,"model_no_boost.pkl")
+	pickle_saver(net2.params,model_dir+"model.pkl")
 
 	# The model hyper parameters
 	f = open("readme","w")

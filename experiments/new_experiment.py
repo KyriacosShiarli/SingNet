@@ -16,7 +16,9 @@ def make_experiment(name):
     os.makedirs(new+"/models/")
 
     basic_vae_dir = current+"/convVAE.py"
+    basic_load_dir = current+"/load_trained.py"
     copy(basic_vae_dir,new)
+    copy(basic_load_dir,new)
   else:
     print "Directory already exists, no action taken"
 
