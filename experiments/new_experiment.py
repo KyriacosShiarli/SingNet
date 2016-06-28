@@ -5,21 +5,21 @@ print pardir
 import pdb
 from shutil import copy
 
-
 def make_experiment(name):
-  	current = os.path.dirname(os.path.abspath(__file__))
-  	new = current +"/"+name+"/"
-  	if not os.path.exists(new):
-  		os.makedirs(new)
-  		os.makedirs(new+"/plots/")
-  		os.makedirs(new+"/sound/")
-  		os.makedirs(new+"/models/")
-  		basic_vae_dir = current+"/ConvVAE.py"
-  		copy(basic_vae_dir,new)
+  current = os.path.dirname(os.path.abspath(__file__))
+  new = current +"/"+name+"/"
+  if not os.path.exists(new):
+    os.makedirs(new)
+    os.makedirs(new+"/plots/")
+    os.makedirs(new+"/sound/")
+    os.makedirs(new+"/plots/weights")
+    os.makedirs(new+"/models/")
 
-  	else:
-  		print "Directory already exists, no action taken"
+    basic_vae_dir = current+"/convVAE.py"
+    copy(basic_vae_dir,new)
+  else:
+    print "Directory already exists, no action taken"
 
 if __name__ == "__main__":
-	make_experiment(sys.argv[1])
+  make_experiment(sys.argv[1])
 

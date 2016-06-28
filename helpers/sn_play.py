@@ -11,7 +11,7 @@ from preprocess import pickle_loader
 import scipy.io.wavfile as wav
 
 
-def  device_play(nnet,sample_rate,duration = 100,buffer_size=20):
+def device_play(nnet,sample_rate,duration = 100,buffer_size=20):
     buffer_size = 20 # sample buffer for playback. Hevent really determined what i does qualitatively. Probably affects latency
     play_duration = duration # play duration in miliseconds
     pygame.mixer.pre_init(sample_rate, -16, 2,buffer = buffer_size) # 44.1kHz, 16-bit signed, stereo
@@ -100,7 +100,7 @@ def trainset_play(nnet,sample_rate):
         pygame.time.delay(1000)
         print "Done"
 
-def sample_write(nnet,sample_rate,name ="default",duration=5,sample_for_latents = 20):
+def sample_write(nnet,sample_rate,name ="default",duration=5,sample_for_latents = 20,retur=True):
     loops = sample_rate*duration/nnet.x_train.shape[2]
     print "LOOPS",loops
     idx = np.random.randint(0,nnet.x_train.shape[0],loops)
@@ -115,8 +115,12 @@ def sample_write(nnet,sample_rate,name ="default",duration=5,sample_for_latents 
     random_out = np.int16(random_out/np.max(np.abs(random_out)) * 32767)
     trainset_out = np.ravel(nnet.output(nnet.x_train[idx]))
     trainset_out =np.int16(trainset_out/np.max(np.abs(trainset_out)) * 32767)
-    wav.write("sound/"+name+"_random.wav",sample_rate,random_out)
-    wav.write("sound/"+name+"_trainset.wav",sample_rate,trainset_out)
+    original = np.ravel(nnet.x_train[idx])
+    if retur==True:
+        return random_out,trainset_out,original
+    else:
+        wav.write("sound/"+name+"_random.wav",sample_rate,random_out)
+        wav.write("sound/"+name+"_trainset.wav",sample_rate,trainset_out)
 
 def path_play(n_code, n_paths, n_steps=480):
     """
@@ -133,7 +137,7 @@ def path_play(n_code, n_paths, n_steps=480):
     paths = np.asarray(paths)
     return paths
 
-def path_write(nnet,sample_rate,duration=5,data_points = 2,name = "path_play",):
+def path_write(nnet,sample_rate,duration=5,data_points = 2,name = "path_play",retur = True):
     loops = sample_rate*duration/nnet.x_train.shape[2]
     idx = np.random.randint(0,nnet.x_train.shape[0],data_points+1)
     latents = nnet.get_latent_states(nnet.x_train[idx])
@@ -146,45 +150,8 @@ def path_write(nnet,sample_rate,duration=5,data_points = 2,name = "path_play",):
     random_out = np.int16(random_out/np.max(np.abs(random_out)) * 32767)
     original = np.ravel(nnet.x_train[idx])
     original = np.int16(original/np.max(np.abs(original)) * 32767)
-    wav.write("sound/"+name+"_paths.wav",sample_rate,random_out)
-    wav.write("sound/"+name+"_original.wav",sample_rate,original)
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    from convVAE2_basic2 import convVAE
-
-    data= pickle_loader("./sound/sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
-    data = np.ndarray.astype(data, np.float32)
-    print data.shape
-    # map inputs from 0 to 1
-    # patch and shape for the CNN
-    #data = (data -mean)/std
-    data = data.reshape(data.shape[0],1,data.shape[1],1)
-    print data.shape
-    dim_z = 200
-    # train and test
-    x_train = data[:500,:,:,:];x_test = data
-    net = convVAE(dim_z,x_train,x_test)
-
-    get_magic = net.get_flattened(net.x_train[:2,:,:,:])
-    print "GOTHERE"
-    # actual nework
-    net = convVAE(dim_z,x_train,x_test,magic = get_magic.shape[1])
-    params = pickle_loader("models/net_boost_2layer.pkl")
-    print "parameters loaded"
-    #other is tenpoints.pkl
-    for i,param in enumerate(params):
-        #print param.get_value()
-        net.params[i].set_value(param.get_value())
-    #plot_filters(net.params[0],f1) 
-    sample_rate = 880
-    #device_play(net,sample_rate,duration=2000)
-    path_write(net,sample_rate,duration=2,data_points=100)
-
-
+    if retur == True:
+        return random_out,original
+    else:
+        wav.write("sound/"+name+"_paths.wav",sample_rate,random_out)
+        wav.write("sound/"+name+"_original.wav",sample_rate,original)

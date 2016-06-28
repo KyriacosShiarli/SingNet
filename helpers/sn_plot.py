@@ -51,6 +51,29 @@ def plot_filters(weight_tensor,figure_handle,interactive=False):
 		plt.show()
 
 
+def plot_params(params,directory):
+	if directory[-1]!="/":
+		directory +="/"
+	for n,param in enumerate(params):
+		value = param.get_value()
+		#print value.shape
+		sq = np.squeeze(value)
+		print sq.shape
+		if len(value.shape)==4:
+			# loop though number of filters
+			for i in range(sq.shape[0]):
+				f = plt.figure()
+				plt.plot(sq[i,:])
+				# first number is parameter set from lower to higher layer.
+				# second number is filter number withn that parameter set.
+				name = str(n)+"_"+str(i)
+				f.savefig(directory+name+".png",)
+
+
+
+
+
+
 
 
 

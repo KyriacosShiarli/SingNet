@@ -22,7 +22,7 @@ from layers import dropout
 from collections import OrderedDict
 from theano.tensor.signal import downsample as ds
 from functions import relu
-from sn_plot import plot_filters
+from sn_plot import plot_filters,plot_params
 import sn_play as sound_write
 import scipy.io.wavfile as wav
 from matplotlib import pyplot as plt
@@ -175,6 +175,7 @@ if __name__ == "__main__":
 	data_dir = parent+"/data/"
 	plot_dir = current+"/plots/"
 	sound_dir = current+"/sound/"
+	weight_plot_dir = current+"/plots/weights"
 	experiment_name = "vae"
 
 	data= pickle_loader(data_dir+"sines.pkl") # data dictionary contains a "data" entry and a "sample rate" entry
@@ -185,15 +186,12 @@ if __name__ == "__main__":
 
 	dif = np.hstack([1+np.absolute((data1-data2)/2),np.ones([data.shape[0],1]).astype(np.float32)])
 
-	# map inputs from 0 to 1
-	# patch and shape for the CNN
 	mean = np.mean(data)
 	std = np.std(data)
 	sample_rate = 880
 	#data = (data -mean)/std
 	data = data.reshape(data.shape[0],1,data.shape[1],1)
 	dim_z = 5
-	#enable interactive plotting
 
 	# train and test
 	x_train = data[:20,:,:,:];x_test = data
@@ -202,42 +200,49 @@ if __name__ == "__main__":
 	net = convVAE(dim_z,x_train,x_test)
 	get_magic = net.get_flattened(net.x_train[:2,:,:,:])
 	# actual nework
-	net1 = convVAE(dim_z,x_train,x_test,diff = dif,magic = get_magic.shape[1])
+	#net1 = convVAE(dim_z,x_train,x_test,diff = dif,magic = get_magic.shape[1])
 	net2 = convVAE(dim_z,x_train,x_test,diff=None,magic = get_magic.shape[1])
 	print "magic_value", net.magic
 	iterations = 100
 	disc = 1.01
 	for i in range(iterations):
-		net1.iterate()
+	#	net1.iterate()
 		net2.iterate()
 		rows = 1;columns = 3;	
 		print "ITERATION",i
 		print net2.performance['train'][-1]
 
-	net1.dropout_prob.set_value(np.float32(0.0))
+	#net1.dropout_prob.set_value(np.float32(0.0))
 	net2.dropout_prob.set_value(np.float32(0.0))
 
+	############## ALL THE BOOKEEPING #########################
+
+	# Writing paths
 	path_array,original_array = sound_write.path_write(net2,880,duration = 0.2,data_points = 10)
 	wav.write("sound/"+experiment_name+"_paths.wav",sample_rate,path_array)
 	wav.write("sound/"+experiment_name+"_paths_original.wav",sample_rate,original_array)
-
-	random,reconstruction,original = sound_write.sample_write(net1,880,duration = 10)
+	# Reconstruction sounds and random latent configurations
+	random,reconstruction,original = sound_write.sample_write(net2,880,duration = 10)
 	wav.write("sound/"+experiment_name+"_random.wav",sample_rate,random)
 	wav.write("sound/"+experiment_name+"_reconstruction.wav",sample_rate,reconstruction)
 	wav.write("sound/"+experiment_name+"_reconstruction_original.wav",sample_rate,original)
+	# Weights
+	plot_params(net2.params,weight_plot_dir)
+	#ou1 = net1.output(x_train[:50])
 
-	ou1 = net1.output(x_train[:50])
+	# Reconstruction images
 	ou2 = net2.output(x_train[:50])
 	for i in range(ou2.shape[0]):
 		if i <100:
 			plt.figure()
-			plt.plot(ou1[i,0,:,0],color = "g")
+	#		plt.plot(ou1[i,0,:,0],color = "g")
 			plt.plot(ou2[i,0,:,0],color = "b")
 			plt.plot(x_train[i,0,:,0],color = "r")
 			plt.savefig(plot_dir+str(i)+"_compare.png",cmap=plt.cm.binary)
+	# The model
 	pickle_saver(net2.params,"model_no_boost.pkl")
 
-
+	# The model hyper parameters
 	f = open("readme","w")
 	f.write("SingVAE parameters for experiment: \n------ \n \n")
 	f.write("Number of filters:  "+ str([net1.in_filters]) +"\n")
@@ -246,11 +251,6 @@ if __name__ == "__main__":
 	f.write("Iterations:  "+str(iterations)+"\n")
 	f.write("Sample rate:  "+str(sample_rate)+"\n")
 	f.close()
-
-	#device_play(net,sample_rate,duration = 1000)
-	#use np.squeeze to remove redundant dimentions.
-	#out = out.reshape(out.shape[0],out.shape[1],out.shape[3])
-	#print out2.shape
 
 
 
