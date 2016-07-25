@@ -1,5 +1,4 @@
 from preprocess import pickle_loader,map_to_range_symmetric,map_to_range
-import mido
 #import pygame
 import numpy as np
 import theano
