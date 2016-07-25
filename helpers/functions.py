@@ -7,3 +7,5 @@ def det_x(a_11,a_12,a_21,a_22):
 	return a_11*a_22 - a_12*a_21
 
 		#self. = theano.function([inpt], output)
+def elu(x):
+	return T.switch(x<0, T.exp(x)-1,x )
